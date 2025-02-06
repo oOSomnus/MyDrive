@@ -46,4 +46,4 @@ sketch
 .env*
 
 .idea
-.idea/*
+.idea/

@@ -27,9 +27,3 @@ CREATE TABLE IF NOT EXISTS files (
      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
      UNIQUE (folder_id, file_name)
 );
-
-CREATE TABLE IF NOT EXISTS folder_file (
-           folder_id INT NOT NULL,
-           file_id INT NOT NULL,
-           PRIMARY KEY (folder_id, file_id)
-);

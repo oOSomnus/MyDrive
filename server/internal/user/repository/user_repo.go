@@ -2,17 +2,12 @@ package repository
 
 import (
 	"database/sql"
-	"errors"
 	"fmt"
 )
 
-var (
-	ErrStartTransaction   = errors.New("failed to start transaction")
-	ErrProceedTransaction = errors.New("failed to proceed transaction")
-)
-
 type UserRepository interface {
-	InsertUserIfNotExists(email, password string) error
+	InsertUserIfNotExists(email, hashedPassword string) error
+	FetchPasswordAndUserId(email string) (password string, userId string, error error)
 }
 
 type UserRepositoryImpl struct {
@@ -25,39 +20,42 @@ func NewUserRepository(db *sql.DB) *UserRepositoryImpl {
 	}
 }
 
-func (u *UserRepositoryImpl) InsertUserIfNotExists(email, password string) error {
+func (u *UserRepositoryImpl) InsertUserIfNotExists(email, hashedPassword string) error {
 	tx, err := u.db.Begin()
 	if err != nil {
-		return fmt.Errorf("%w: %v", ErrStartTransaction, err)
+		return fmt.Errorf("failed to start transaction: %w", err)
 	}
 
 	defer func() {
 		if err != nil {
-			err := tx.Rollback()
-			if err != nil {
-				return
-			}
+			tx.Rollback()
 		}
 	}()
 
 	var exists int
 	query := "SELECT COUNT(*) FROM users WHERE email = ? FOR UPDATE"
-	err = tx.QueryRow(query, email).Scan(&exists)
-	if err != nil {
-		return fmt.Errorf("%w: query failed (%s) - %v", ErrProceedTransaction, query, err)
+	if err := tx.QueryRow(query, email).Scan(&exists); err != nil {
+		return fmt.Errorf("query failed: %w", err)
 	}
 
 	if exists == 0 {
 		insertQuery := "INSERT INTO users(email, password) VALUES (?, ?)"
-		_, err = tx.Exec(insertQuery, email, password)
-		if err != nil {
-			return fmt.Errorf("%w: insert failed (%s) - %v", ErrProceedTransaction, insertQuery, err)
+		if _, err := tx.Exec(insertQuery, email, hashedPassword); err != nil {
+			return fmt.Errorf("insert failed: %w", err)
 		}
 	}
 
-	// 提交事务
 	if err := tx.Commit(); err != nil {
-		return fmt.Errorf("transaction commit failed: %v", err)
+		return fmt.Errorf("transaction commit failed: %w", err)
 	}
 	return nil
+}
+
+func (u *UserRepositoryImpl) FetchPasswordAndUserId(email string) (string, string, error) {
+	var password, userId string
+	query := "SELECT password, id FROM users WHERE email = ?"
+	if err := u.db.QueryRow(query, email).Scan(&password, &userId); err != nil {
+		return "", "", fmt.Errorf("query failed: %w", err)
+	}
+	return password, userId, nil
 }

@@ -4,7 +4,7 @@ services:
     container_name: mydrive-mysql
     restart: always
     env_file:
-      - ../.env
+      - ../.env.base
     ports:
       - "3306:3306"
     volumes:

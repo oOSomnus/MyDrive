@@ -2,6 +2,7 @@ package auth
 
 import (
 	"errors"
+	"os"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -11,20 +12,13 @@ var (
 	ErrInvalidToken = "invalid token"
 )
 
-type JWTManager struct {
-	secretKey string
-}
-
 type Claims struct {
-	UserID uint `json:"user_id"`
+	UserID string `json:"user_id"`
 	jwt.RegisteredClaims
 }
 
-func NewJWTManager(secretKey string) *JWTManager {
-	return &JWTManager{secretKey: secretKey}
-}
-
-func (jm *JWTManager) GenerateToken(userID uint, expiration time.Duration) (string, error) {
+func GenerateToken(userID string, expiration time.Duration) (string, error) {
+	secretKey := os.Getenv("JWT_SECRET")
 	expirationTime := time.Now().Add(expiration)
 	claims := &Claims{
 		UserID: userID,
@@ -33,13 +27,14 @@ func (jm *JWTManager) GenerateToken(userID uint, expiration time.Duration) (stri
 		},
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	return token.SignedString([]byte(jm.secretKey))
+	return token.SignedString([]byte(secretKey))
 }
 
-func (jm *JWTManager) ParseToken(tokenStr string) (*Claims, error) {
+func ParseToken(tokenStr string) (*Claims, error) {
+	secretKey := os.Getenv("JWT_SECRET")
 	token, err := jwt.ParseWithClaims(
 		tokenStr, &Claims{}, func(token *jwt.Token) (interface{}, error) {
-			return []byte(jm.secretKey), nil
+			return []byte(secretKey), nil
 		},
 	)
 
