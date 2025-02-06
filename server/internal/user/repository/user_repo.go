@@ -2,12 +2,17 @@ package repository
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
+	"github.com/go-sql-driver/mysql"
+	"strconv"
 )
 
 type UserRepository interface {
-	InsertUserIfNotExists(email, hashedPassword string) error
+	InsertUserIfNotExists(email, hashedPassword string) (userId string, error error)
 	FetchPasswordAndUserId(email string) (password string, userId string, error error)
+	FetchUserIdWithEmail(email string) (userId string, err error)
+	UpdateUserHomeFolder(userId string, homeFolder string) (error error)
 }
 
 type UserRepositoryImpl struct {
@@ -20,35 +25,32 @@ func NewUserRepository(db *sql.DB) *UserRepositoryImpl {
 	}
 }
 
-func (u *UserRepositoryImpl) InsertUserIfNotExists(email, hashedPassword string) error {
-	tx, err := u.db.Begin()
+func (u *UserRepositoryImpl) InsertUserIfNotExists(email, hashedPassword string) (string, error) {
+	result, err := u.db.Exec(
+		"INSERT INTO users(email, password, username) VALUES (?, ?, ?)",
+		email, hashedPassword, email,
+	)
 	if err != nil {
-		return fmt.Errorf("failed to start transaction: %w", err)
-	}
-
-	defer func() {
-		if err != nil {
-			tx.Rollback()
+		if isDuplicateKeyError(err) {
+			return "", fmt.Errorf("user already exists")
 		}
-	}()
-
-	var exists int
-	query := "SELECT COUNT(*) FROM users WHERE email = ? FOR UPDATE"
-	if err := tx.QueryRow(query, email).Scan(&exists); err != nil {
-		return fmt.Errorf("query failed: %w", err)
+		return "", fmt.Errorf("failed to insert user: %w", err)
 	}
 
-	if exists == 0 {
-		insertQuery := "INSERT INTO users(email, password) VALUES (?, ?)"
-		if _, err := tx.Exec(insertQuery, email, hashedPassword); err != nil {
-			return fmt.Errorf("insert failed: %w", err)
-		}
+	userId, err := result.LastInsertId()
+	if err != nil {
+		return "", fmt.Errorf("failed to get user ID: %w", err)
 	}
 
-	if err := tx.Commit(); err != nil {
-		return fmt.Errorf("transaction commit failed: %w", err)
+	return strconv.FormatInt(userId, 10), nil
+}
+
+func isDuplicateKeyError(err error) bool {
+	var mysqlErr *mysql.MySQLError
+	if errors.As(err, &mysqlErr) && mysqlErr.Number == 1062 {
+		return true
 	}
-	return nil
+	return false
 }
 
 func (u *UserRepositoryImpl) FetchPasswordAndUserId(email string) (string, string, error) {
@@ -58,4 +60,22 @@ func (u *UserRepositoryImpl) FetchPasswordAndUserId(email string) (string, strin
 		return "", "", fmt.Errorf("query failed: %w", err)
 	}
 	return password, userId, nil
+}
+
+func (u *UserRepositoryImpl) FetchUserIdWithEmail(email string) (string, error) {
+	var userId string
+	query := "SELECT id FROM users WHERE email = ?"
+	if err := u.db.QueryRow(query, email).Scan(&userId); err != nil {
+		return "", fmt.Errorf("query failed: %w", err)
+	}
+	return userId, nil
+}
+
+func (u *UserRepositoryImpl) UpdateUserHomeFolder(userId string, homeFolder string) error {
+	query := "UPDATE users SET home_folder_id = ? WHERE id = ?"
+	_, err := u.db.Exec(query, homeFolder, userId)
+	if err != nil {
+		return fmt.Errorf("query failed: %w", err)
+	}
+	return nil
 }

@@ -2,11 +2,13 @@ CREATE TABLE IF NOT EXISTS users (
      id INT AUTO_INCREMENT PRIMARY KEY,
      email VARCHAR(50) NOT NULL UNIQUE,
      password VARCHAR(60) NOT NULL,
-     home_folder_id INT NOT NULL
+     username VARCHAR(50) NOT NULL ,
+     home_folder_id INT
 );
 
 CREATE TABLE IF NOT EXISTS folders (
        folder_id INT AUTO_INCREMENT PRIMARY KEY,
+       owner_id INT NOT NULL ,
        folder_name VARCHAR(50) NOT NULL,
        parent_folder_id INT,
        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
