@@ -8,6 +8,7 @@ import (
 	"github.com/oOSomnus/MyDrive/internal/user/handler"
 	"github.com/oOSomnus/MyDrive/internal/user/repository"
 	"github.com/oOSomnus/MyDrive/internal/user/service"
+	"github.com/oOSomnus/MyDrive/pkg/auth"
 	"log"
 	"os"
 )
@@ -40,5 +41,6 @@ func main() {
 	)
 	r.POST("/register", userHandler.CreateUser)
 	r.POST("/login", userHandler.Authenticate)
+	r.Use(auth.AuthMiddleware())
 	r.Run(":8080")
 }

@@ -10,22 +10,21 @@ import (
 )
 
 type DBManager struct {
-	db   *sql.DB
-	once sync.Once
+	db *sql.DB
 }
 
-var instance *DBManager
-var once sync.Once
+var dbInstance *DBManager
+var dbOnce sync.Once
 
 func GetDBManager(host, port, dbname, user, password string) *DBManager {
-	once.Do(
+	dbOnce.Do(
 		func() {
 			fmt.Println("Initializing database connection...")
-			instance = &DBManager{}
-			instance.initialize(host, port, dbname, user, password)
+			dbInstance = &DBManager{}
+			dbInstance.initialize(host, port, dbname, user, password)
 		},
 	)
-	return instance
+	return dbInstance
 }
 
 func (manager *DBManager) initialize(host, port, dbname, user, password string) {

@@ -3,6 +3,8 @@ CREATE TABLE IF NOT EXISTS users (
      email VARCHAR(50) NOT NULL UNIQUE,
      password VARCHAR(60) NOT NULL,
      username VARCHAR(50) NOT NULL ,
+     credit_used BIGINT UNSIGNED DEFAULT 0 NOT NULL ,
+     max_credit BIGINT UNSIGNED NOT NULL ,
      home_folder_id INT
 );
 
@@ -23,7 +25,6 @@ CREATE TABLE IF NOT EXISTS files (
      owner_id INT NOT NULL,
      mime_type VARCHAR(50) NOT NULL,
      size BIGINT UNSIGNED NOT NULL,
-     compress_algo VARCHAR(20),
      s3_link VARCHAR(2083),
      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,

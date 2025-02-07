@@ -11,6 +11,18 @@ services:
       - mysql_data:/var/lib/mysql
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql
     command: --default-authentication-plugin=mysql_native_password
-
+  redis:
+    image: redis:7.2
+    container_name: mydrive-redis
+    restart: always
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+      - ./redis.conf:/usr/local/etc/redis/redis.conf
+    env_file:
+      - ../.env.base
+    command: ["redis-server","/usr/local/etc/redis/redis.conf","--requirepass","${REDIS_PASSWORD}"]
 volumes:
   mysql_data:
+  redis_data:

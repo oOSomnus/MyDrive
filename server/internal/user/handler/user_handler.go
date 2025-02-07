@@ -10,15 +10,15 @@ import (
 )
 
 type UserHandler interface {
-	CreateUser(c *gin.Context) error
-	Authenticate(c *gin.Context) bool
+	CreateUser(c *gin.Context)
+	Authenticate(c *gin.Context)
 }
 
 type UserHandlerImpl struct {
 	userService service.UserService
 }
 
-func NewUserHandler(userService service.UserService) *UserHandlerImpl {
+func NewUserHandler(userService service.UserService) UserHandler {
 	return &UserHandlerImpl{
 		userService: userService,
 	}
